@@ -1,48 +1,52 @@
-/* Melhorias para Drag & Drop */
-.professor-item.dragging {
-    opacity: 0.6;
-    transform: scale(0.95);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-}
+class Professor {
+    constructor(id, nome, disciplinas = [], disponibilidade = [], cargaMaximaDiaria = 8) {
+        this.id = id;
+        this.nome = nome;
+        this.disciplinas = disciplinas;
+        this.disponibilidade = disponibilidade;
+        this.cargaMaximaDiaria = cargaMaximaDiaria;
+    }
 
-.grade-aula-cell.drag-over {
-    background: #e3f2fd !important;
-    border: 2px dashed #2196f3 !important;
-    animation: pulse 1s infinite;
-}
+    podeLecionar(dia, horario) {
+        const dispDia = this.disponibilidade.find(d => d.dia === dia);
+        return dispDia && dispDia.horarios.includes(horario);
+    }
 
-@keyframes pulse {
-    0% { border-color: #2196f3; }
-    50% { border-color: #64b5f6; }
-    100% { border-color: #2196f3; }
-}
+    toDraggableHTML() {
+        const cargaAtual = window.sistemaGrade ? window.sistemaGrade.obterCargaDiariaProfessor(this.id) : 0;
+        
+        // CORREÇÃO: Usar window.sistemaGrade para garantir que existe
+        return `
+            <div class="professor-item" draggable="true" 
+                 ondragstart="window.sistemaGrade.dragStart(event, 'professor', '${this.id}')"
+                 oncontextmenu="window.sistemaGrade.mostrarMenuContextoProfessor(event, '${this.id}'); return false;"
+                 data-id="${this.id}">
+                <div class="d-flex justify-content-between align-items-center">
+                    <strong>${this.nome}</strong>
+                    <span class="badge bg-primary badge-carga">${cargaAtual}/${this.cargaMaximaDiaria}</span>
+                </div>
+                <div class="carga-indicator">
+                    ${this.obterDisciplinasNomes()}
+                </div>
+            </div>
+        `;
+    }
 
-/* Feedback visual para células que aceitam drop */
-.grade-aula-cell.vazia:hover {
-    background: #f8f9fa;
-    border: 1px dashed #6c757d;
-}
+    obterDisciplinasNomes() {
+        if (!window.sistemaGrade || !window.sistemaGrade.disciplinas) return '';
+        
+        return this.disciplinas.map(discId => {
+            const disc = window.sistemaGrade.disciplinas.find(d => d.id === discId);
+            return disc ? disc.nome : '';
+        }).filter(nome => nome).join(', ');
+    }
 
-/* Context menu styles */
-.context-menu {
-    background: white;
-    border: 1px solid #dee2e6;
-    border-radius: 0.375rem;
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-    min-width: 180px;
-}
-
-.context-menu .list-group-item {
-    border: none;
-    padding: 8px 12px;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-.context-menu .list-group-item:hover {
-    background: #f8f9fa;
-}
-
-.context-menu .list-group-item.text-danger:hover {
-    background: #f8d7da;
+    obterDisponibilidadeTexto() {
+        const dias = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex'];
+        return this.disponibilidade.map(disp => {
+            const diaNome = dias[disp.dia] || `Dia ${disp.dia}`;
+            const horarios = disp.horarios.join(', ');
+            return `${diaNome}: ${horarios}`;
+        }).join('; ');
+    }
 }
