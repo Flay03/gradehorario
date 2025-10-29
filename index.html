@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Grade Horária Escolar</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container-fluid">
+        <header class="row bg-primary text-white p-3">
+            <div class="col">
+                <h1>📅 Sistema de Grade Horária Escolar</h1>
+                <p class="mb-0">Monte sua grade visualmente com verificações automáticas</p>
+            </div>
+        </header>
+
+        <div class="row">
+            <!-- Painel Lateral -->
+            <div class="col-md-3 bg-light p-3 border-end">
+                <!-- Filtros -->
+                <div class="mb-3">
+                    <h6>🔍 Filtros</h6>
+                    <input type="text" id="buscaProfessores" placeholder="Buscar professor..." class="form-control form-control-sm mb-2">
+                    <select id="filtroPeriodo" class="form-select form-select-sm">
+                        <option value="">Todos os períodos</option>
+                        <option value="MATUTINO">Matutino</option>
+                        <option value="VESPERTINO">Vespertino</option>
+                        <option value="NOTURNO">Noturno</option>
+                    </select>
+                </div>
+
+                <!-- Seção Professores -->
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6>👨‍🏫 Professores</h6>
+                        <small id="contadorProfessores" class="text-muted">0/0</small>
+                    </div>
+                    <div id="listaProfessores" class="professor-list compact-list">
+                        <!-- Lista de professores será carregada aqui -->
+                    </div>
+                </div>
+
+                <!-- Seção Turmas -->
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6>👥 Turmas</h6>
+                        <button class="btn btn-outline-primary btn-sm" onclick="sistemaGrade.abrirModalGerenciarTurmas()">
+                            ⚙️ Gerenciar
+                        </button>
+                    </div>
+                    <div id="listaTurmas" class="turma-list compact-list">
+                        <!-- Lista de turmas será carregada aqui -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Área Principal -->
+            <div class="col-md-9 p-3">
+                <!-- Controles -->
+                <div class="row mb-3">
+                    <div class="col">
+                        <button class="btn btn-success btn-sm" onclick="sistemaGrade.salvarGrade()">
+                            💾 Salvar Grade
+                        </button>
+                        <button class="btn btn-info btn-sm" onclick="sistemaGrade.exportarExcel()">
+                            📊 Exportar Excel
+                        </button>
+                        <button class="btn btn-warning btn-sm" onclick="sistemaGrade.limparGrade()">
+                            🗑️ Limpar Grade
+                        </button>
+                        <button class="btn btn-secondary btn-sm" onclick="sistemaGrade.carregarDadosExemplo()">
+                            🎯 Dados Exemplo
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Grade Horária -->
+                <div class="row">
+                    <div class="col">
+                        <div id="gradeHoraria" class="grade-container">
+                            <!-- Grade será gerada dinamicamente -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Painel de Alertas -->
+                <div class="row mt-3">
+                    <div class="col">
+                        <div class="alertas-container">
+                            <h6>⚠️ Alertas e Conflitos</h6>
+                            <div id="painelAlertas" class="alertas-list">
+                                <!-- Alertas serão exibidos aqui -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para alocar aula -->
+    <div class="modal fade" id="modalAula" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Alocar Aula</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formAula">
+                        <input type="hidden" id="aulaDia">
+                        <input type="hidden" id="aulaHorario">
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Professor:</label>
+                            <select class="form-select" id="selectProfessor" required>
+                                <option value="">Selecione um professor</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Disciplina:</label>
+                            <select class="form-select" id="selectDisciplina" required>
+                                <option value="">Selecione uma disciplina</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Turma:</label>
+                            <select class="form-select" id="selectTurma" required>
+                                <option value="">Selecione uma turma</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Duração (aulas):</label>
+                            <input type="number" class="form-control" id="inputDuracao" value="1" min="1" max="4">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="sistemaGrade.confirmarAula()">Confirmar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para editar professor -->
+    <div class="modal fade" id="modalEditarProfessor" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar Professor</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formEditarProfessor">
+                        <input type="hidden" id="professorId">
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Nome do Professor:</label>
+                            <input type="text" class="form-control" id="professorNome" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Disciplinas Ministradas:</label>
+                            <div id="listaDisciplinasProfessor" class="border p-2 compact-list" style="max-height: 200px; overflow-y: auto;">
+                                <!-- Checkboxes para disciplinas -->
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Disponibilidade:</label>
+                            <small class="text-muted d-block mb-2">Marque os horários em que o professor pode lecionar</small>
+                            <div class="disponibilidade-grid">
+                                <table class="table table-bordered table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Horário</th>
+                                            <th>Seg</th>
+                                            <th>Ter</th>
+                                            <th>Qua</th>
+                                            <th>Qui</th>
+                                            <th>Sex</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="gridDisponibilidade">
+                                        <!-- Grid será gerado dinamicamente -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="sistemaGrade.salvarEdicaoProfessor()">Salvar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para gerenciar turmas -->
+    <div class="modal fade" id="modalGerenciarTurmas" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">👥 Gerenciar Turmas e Disciplinas</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="turma-disciplinas-list" id="listaTurmasGerenciamento">
+                        <!-- Lista de turmas será carregada aqui -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                    <button class="btn btn-primary" onclick="sistemaGrade.criarNovaTurma()">
+                        ➕ Nova Turma
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para editar turma -->
+    <div class="modal fade" id="modalEditarTurma" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar Turma</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formEditarTurma">
+                        <input type="hidden" id="turmaEdicaoId">
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Nome da Turma:</label>
+                            <input type="text" class="form-control" id="turmaEdicaoNome" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Período:</label>
+                            <select class="form-select" id="turmaEdicaoPeriodo" required>
+                                <option value="MATUTINO">Matutino</option>
+                                <option value="VESPERTINO">Vespertino</option>
+                                <option value="NOTURNO">Noturno</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Disciplinas da Turma:</label>
+                            <div id="listaDisciplinasTurma" class="border p-2 compact-list" style="max-height: 300px; overflow-y: auto;">
+                                <!-- Disciplinas serão carregadas aqui -->
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="sistemaGrade.salvarEdicaoTurma()">Salvar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+    <script src="js/models/Professor.js"></script>
+    <script src="js/models/Disciplina.js"></script>
+    <script src="js/models/Turma.js"></script>
+    <script src="js/models/Aula.js"></script>
+    <script src="js/services/ValidatorService.js"></script>
+    <script src="js/services/StorageService.js"></script>
+    <script src="js/services/ExportService.js"></script>
+    <script src="js/components/GradeComponent.js"></script>
+    <script src="js/components/ProfessorPanel.js"></script>
+    <script src="js/components/AlertPanel.js"></script>
+    <script src="js/utils/dateUtils.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
